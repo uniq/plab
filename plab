@@ -1,14 +1,21 @@
 #!/usr/bin/perl -w
-#use lib '/home/uniq/pl/lib';
+#
+# Mostly based on http://gist.github.com/320710
+#
 use strict;
 use AnyEvent::HTTP;
 use Time::HiRes qw/time/;
 use 5.010;
+use Getopt::Long qw(:config no_ignore_case no_auto_abbrev gnu_getopt);
 
 use constant LOGGER_INTERVAL => 1;
-use constant USAGE => "$0 [requests_count] [threads_count] [url]\n";
+use constant USAGE => "$0 [-q|--quiet] -n|--number [requests_count] -c [threads_count] -u|--url [url]\n";
+my ( $quiet, $c, $n, $url );
+my ( $max_requests, $max_threads); # = @ARGV;
 
-my ( $max_requests, $max_threads, $url ) = @ARGV;
+GetOptions ('q|quiet' => \$quiet, 'n|number=i' => \$n, 'c=i' => \$c, 'u|url=s' => \$url);
+$max_requests=$n;
+$max_threads=$c;
 die USAGE unless $max_requests && $max_threads && $url;
 
 my $requests_count = 0;
@@ -33,7 +40,9 @@ my $logger = AnyEvent->timer(
     interval => LOGGER_INTERVAL,
     cb => sub {
         my $time = time() - $global_begin_time;
-        print sprintf("Time passed: %f,\trequests: %d/failed: %d of %d\n", $time, $requests_count, $fail_count, $max_requests);
+        unless($quiet){
+            print sprintf("Time passed: %f,\trequests: %d/failed: %d of %d\n", $time, $requests_count, $fail_count, $max_requests);
+        }
     },
 );
 
