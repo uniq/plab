@@ -39,8 +39,8 @@ my $global_begin_time = time();
 my $logger = AnyEvent->timer(
     interval => LOGGER_INTERVAL,
     cb => sub {
-        my $time = time() - $global_begin_time;
         unless($quiet){
+            my $time = time() - $global_begin_time;
             print sprintf("Time passed: %f,\trequests: %d/failed: %d of %d\n", $time, $requests_count, $fail_count, $max_requests);
         }
     },
