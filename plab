@@ -1,0 +1,45 @@
+#!/usr/bin/perl -w
+#use lib '/home/uniq/pl/lib';
+use strict;
+use AnyEvent::HTTP;
+use Time::HiRes qw/time/;
+use 5.010;
+
+use constant LOGGER_INTERVAL => 1;
+use constant USAGE => "$0 [requests_count] [threads_count] [url]\n";
+
+my ( $max_requests, $max_threads, $url ) = @ARGV;
+die USAGE unless $max_requests && $max_threads && $url;
+
+my $requests_count = 0;
+my $fail_count = 0;
+
+my $cv = AnyEvent->condvar();
+
+sub test
+{
+    my $url = shift;
+    http_request 'GET' => $url, sub{
+        my ($data, $hdr) = @_;
+        $requests_count++;
+        $fail_count++ unless $hdr->{Status} =~ /^2/;
+        $requests_count < $max_requests ? test($url) : $cv->send();
+    };
+}
+
+
+my $global_begin_time = time();
+my $logger = AnyEvent->timer(
+    interval => LOGGER_INTERVAL,
+    cb => sub {
+        my $time = time() - $global_begin_time;
+        print sprintf("Time passed: %f,\trequests: %d/failed: %d of %d\n", $time, $requests_count, $fail_count, $max_requests);
+    },
+);
+
+
+test($url) for (1..$max_threads);
+$cv->recv();
+
+my $global_end_time = time();
+print sprintf("Total time: %f\n", $global_end_time-$global_begin_time); 
