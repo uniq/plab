@@ -1,15 +1,18 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 #
 # Mostly based on http://gist.github.com/320710
 #
 use strict;
+use warnings;
+use lib '/home/uniq/pl/lib';
 use AnyEvent::HTTP;
 use Time::HiRes qw/time/;
 use 5.010;
-use Getopt::Long qw(:config no_ignore_case no_auto_abbrev gnu_getopt);
+use Getopt::Long qw(:config no_ignore_case no_auto_abbrev);
 
 use constant LOGGER_INTERVAL => 1;
-use constant USAGE => "$0 [-q|--quiet] -n|--number [requests_count] -c [threads_count] -u|--url [url]\n";
+use constant USAGE => "$0 [-q|--quiet] -n|--number [requests_count] -c [threads_count] -u|--url http://example.com\n";
+use constant URL_ERROR => "URL should start with http:// \n";
 my ( $quiet, $c, $n, $url );
 my ( $max_requests, $max_threads); # = @ARGV;
 
@@ -17,6 +20,7 @@ GetOptions ('q|quiet' => \$quiet, 'n|number=i' => \$n, 'c=i' => \$c, 'u|url=s' =
 $max_requests=$n;
 $max_threads=$c;
 die USAGE unless $max_requests && $max_threads && $url;
+die URL_ERROR unless( $url =~ m|^http:[/]{2}[[:alnum:]]|io );
 
 my $requests_count = 0;
 my $fail_count = 0;
@@ -41,7 +45,7 @@ my $logger = AnyEvent->timer(
     cb => sub {
         unless($quiet){
             my $time = time() - $global_begin_time;
-            print sprintf("Time passed: %f,\trequests: %d/failed: %d of %d\n", $time, $requests_count, $fail_count, $max_requests);
+            print sprintf("Time passed: %f,\trequests: %d failed: %d of %d\n", $time, $requests_count, $fail_count, $max_requests);
         }
     },
 );
